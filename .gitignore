@@ -1,0 +1,7 @@
+play
+db
+a.out.dSYM
+include/
+db.dSYM
+lib/
+.DS_Store
