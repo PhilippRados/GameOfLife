@@ -11,21 +11,26 @@
 #include "include/SDL2/SDL_video.h"
 #include <stdbool.h>
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
 #define RECT_SIZE 20
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 #define WIDTH (SCREEN_WIDTH / RECT_SIZE)
 #define HEIGHT (SCREEN_HEIGHT / RECT_SIZE)
 
-typedef bool multi_arr[WIDTH][WIDTH];
+typedef bool multi_arr[WIDTH][HEIGHT];
 multi_arr Field = {0,};
 multi_arr nextState = {0,};
-
-
 
 SDL_Color blue = {0,0,255,255};
 SDL_Color black = {0,0,0,255};
 SDL_Color white = {244,244,244,50};
+
 
 int getNearestMultiple(int number){
     int multiple = 20;
@@ -64,8 +69,8 @@ void drawGrid(SDL_Renderer *renderer,SDL_Color color){
 void updateGame(SDL_Window *window,SDL_Renderer *renderer, SDL_Rect r){
     //Loop through field-array and show rectangles if cell alive
 
-    for (int i = 0; i < (SCREEN_WIDTH / RECT_SIZE);i++){
-        for (int j = 0; j < (SCREEN_HEIGHT / RECT_SIZE);j++){
+    for (int i = 0; i < WIDTH;i++){
+        for (int j = 0; j < HEIGHT;j++){
             if (Field[i][j] == true){
                 r.x = i * 20;
                 r.y = j * 20;
@@ -89,27 +94,31 @@ int countAliveNeighbors(int x, int y){
 
     for (int rows = -1; rows < 2; rows++){
         for (int columns = -1; columns < 2;columns++){
-            if (Field[x+rows][y+columns] == true){
-                count++;
+            if ((x+columns) >= 0 && (x+columns) < WIDTH && (y+rows) >= 0 && (y+rows) < HEIGHT){
+                if (Field[x+columns][y+rows] == true){
+                    count++;
+                }
             }
-            
         }
     }
-    return count - 1; // -1 because it counts itself too
+    if (Field[x][y] == true){
+        return count -1;
+    }
+    return count;
 }
 
-void copyArray(bool arr1[SCREEN_WIDTH / RECT_SIZE][SCREEN_HEIGHT / RECT_SIZE],bool arr2[SCREEN_WIDTH / RECT_SIZE][SCREEN_HEIGHT / RECT_SIZE]){
-    for (int i = 0; i < (SCREEN_WIDTH / RECT_SIZE);i++){
-        for (int j = 0; j < (SCREEN_HEIGHT / RECT_SIZE);j++){
+void copyArray(multi_arr arr1,multi_arr arr2){
+    for (int i = 0; i < WIDTH;i++){
+        for (int j = 0; j < HEIGHT;j++){
             arr1[i][j] = arr2[i][j];
         }
     }
 }
 
 void nextEpoch(){
-    for (int i = 0; i < (SCREEN_WIDTH / RECT_SIZE);i++){
-        for (int j = 0; j < (SCREEN_HEIGHT / RECT_SIZE);j++){
-            if (Field[i][j] == true && countAliveNeighbors(i, j) == 3 || countAliveNeighbors(i, j) == 2){
+    for (int i = 0; i < WIDTH;i++){
+        for (int j = 0; j < HEIGHT;j++){
+            if (Field[i][j] == true && (countAliveNeighbors(i, j) == 3 || countAliveNeighbors(i, j) == 2)){
                 nextState[i][j] = true;               
             } else if (Field[i][j] == false && countAliveNeighbors(i, j) == 3){
                 nextState[i][j] = true;
@@ -179,14 +188,28 @@ int main (int argc, char** argv)
                     updateGame(window, renderer, r);
                 }
                 else if (e.key.keysym.sym == SDLK_r){
-                    memset(Field,0,sizeof(Field[0][0]) * (SCREEN_WIDTH/20) * (SCREEN_HEIGHT/20));
-                    memset(nextState,0,sizeof(nextState[0][0]) * (SCREEN_WIDTH/20) * (SCREEN_HEIGHT/20));
+                    memset(Field,0,sizeof(Field[0][0]) * WIDTH * HEIGHT);
+                    memset(nextState,0,sizeof(nextState[0][0]) * WIDTH * HEIGHT);
                     updateGame(window,renderer, r);
+                }
+                else if (e.key.keysym.sym == SDLK_p){
+                    SDL_Event run;
+                    bool stop = false;
+                    while (stop == false && SDL_PollEvent(&run)){
+                        nextEpoch();
+                        updateGame(window, renderer, r);
+                        sleep(1);
+                        if (run.type == SDL_KEYDOWN){
+                            if (run.key.keysym.sym == SDLK_q){
+                                printf("pressed P\n");
+                                stop = true;
+                            }
+                        }
+                    }
                 }
             }
         }
     }
-
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
