@@ -22,9 +22,9 @@ of graphics application/game
 #### 2. Controls
 1. You can click the cells that you want to activate or deactivate
 2. To go to the next epoch press `Space`
-3. To loop through all epochs press `p` and press `s` to stop again
+3. Press the start and stop button in the corner to let the game run
 4. Press `r` to clear the screen of all existing cells
 5. Quit, of course, by closing the application
 
 #### 3. Example
-// still do be done
+![Alt Text](https://media.giphy.com/media/tcyups9zC1qVwrE0fC/giphy.gif)
