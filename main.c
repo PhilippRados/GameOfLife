@@ -4,18 +4,16 @@
 #include "include/SDL2/SDL_error.h"
 #include "include/SDL2/SDL_events.h"
 #include "include/SDL2/SDL_keycode.h"
+#include "include/SDL2/SDL_messagebox.h"
 #include "include/SDL2/SDL_pixels.h"
+#include "include/SDL2/SDL_rect.h"
 #include "include/SDL2/SDL_render.h"
 #include "include/SDL2/SDL_stdinc.h"
 #include "include/SDL2/SDL_surface.h"
 #include "include/SDL2/SDL_video.h"
 #include <stdbool.h>
-
-#ifdef _WIN32
-#include <Windows.h>
-#else
 #include <unistd.h>
-#endif
+
 
 #define RECT_SIZE 20
 #define SCREEN_WIDTH 640
@@ -31,6 +29,8 @@ SDL_Color blue = {0,0,255,255};
 SDL_Color black = {0,0,0,255};
 SDL_Color white = {244,244,244,50};
 
+/*bool paused = true;*/
+/*bool running = false;*/
 
 int getNearestMultiple(int number){
     int multiple = 20;
@@ -48,7 +48,7 @@ int getNearestMultiple(int number){
     return number;
 }
 
-void colorRect(SDL_Renderer *renderer, SDL_Rect r,int mouseX, int mouseY,SDL_Color color){
+void colorRect(SDL_Renderer *renderer, SDL_Rect r,SDL_Color color){
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b ,255);
 
     // Render rect
@@ -66,24 +66,47 @@ void drawGrid(SDL_Renderer *renderer,SDL_Color color){
     }
 }
 
-void updateGame(SDL_Window *window,SDL_Renderer *renderer, SDL_Rect r){
+void displayImg(SDL_Renderer *renderer,char* path){
+    SDL_Surface *image = SDL_LoadBMP(path);
+    if (image == NULL){
+        printf("cant load image\n");
+    }
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, image);
+
+    SDL_Rect dstrect = { 6,SCREEN_HEIGHT-55, 50, 50 };
+    SDL_Rect rect = {0,SCREEN_HEIGHT-59,60,60};
+
+    colorRect(renderer, rect, white);
+    SDL_RenderCopy(renderer, texture, NULL, &dstrect);
+}
+
+void updateGame(SDL_Window *window,SDL_Renderer *renderer, SDL_Rect r,bool paused){
     //Loop through field-array and show rectangles if cell alive
+    char *path;
+    
+    if (paused){
+        path = "./assets/start.bmp";
+    } else{
+        path = "./assets/pause.bmp";
+    }
 
     for (int i = 0; i < WIDTH;i++){
         for (int j = 0; j < HEIGHT;j++){
             if (Field[i][j] == true){
                 r.x = i * 20;
                 r.y = j * 20;
-                colorRect(renderer, r, i,j,blue);
+                colorRect(renderer, r, blue);
             } else {
                 r.x = i * 20;
                 r.y = j * 20;
-                colorRect(renderer, r, i,j,white);
+                colorRect(renderer, r, white);
             }
         }
     }
 
     drawGrid(renderer,black);
+    displayImg(renderer, path);
+
     SDL_RenderPresent(renderer);
 }
 
@@ -130,8 +153,34 @@ void nextEpoch(){
     copyArray(Field, nextState);
 }
 
+int msleep(unsigned int tms){
+    return usleep(tms * 1000);
+
+}
+
+bool buttonPress(int x,int y){
+    if (x <= 2 && x >= 0 && y >= (HEIGHT - 3) && y <= HEIGHT){
+        return true;
+    }
+    return false;
+}
+
+Uint32 my_callbackfunc( Uint32 interval, void *param ){
+    SDL_Event e;
+
+    e.user.type = SDL_USEREVENT;
+    e.user.code = 0;
+    e.user.data1 = NULL;
+    e.user.data2 = NULL;
+
+    SDL_PushEvent( &e );
+
+    return interval;
+}
+
 int main (int argc, char** argv)
 {
+    SDL_Init(SDL_INIT_EVERYTHING);
     SDL_Window* window = NULL;
     window = SDL_CreateWindow
     (
@@ -148,8 +197,8 @@ int main (int argc, char** argv)
     renderer =  SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED);
 
     SDL_Event e;
-    bool quit = false;
     
+    bool paused = true;
     int mouseX;
     int mouseY;
 
@@ -162,55 +211,60 @@ int main (int argc, char** argv)
     r.h = RECT_SIZE;
 
     SDL_RenderClear(renderer);
-    updateGame(window, renderer, r);
+    updateGame(window, renderer, r,paused);
 
-    while (!quit){
-        while (SDL_PollEvent(&e)){ 
-            if (e.type == SDL_QUIT){
-                quit = true;
-            }
+    SDL_TimerID timer = SDL_AddTimer( 500, my_callbackfunc, NULL );
+        if (timer == 0){
+            return EXIT_FAILURE;
+        }
+
+    while (SDL_WaitEvent(&e)){ 
+        switch(e.type){
+            case SDL_QUIT:
+                goto quit_game;
             
-            SDL_GetMouseState(&mouseX, &mouseY);
-            mouseX = getNearestMultiple(mouseX) / RECT_SIZE;
-            mouseY = getNearestMultiple(mouseY) / RECT_SIZE;
+            case SDL_USEREVENT:
+                if (!paused){
+                    nextEpoch();
+                    updateGame(window,renderer,r,paused);
+                }
+                break;
 
-            if (e.type == SDL_MOUSEBUTTONDOWN && Field[mouseX][mouseY] == false){
-                //activate cell at position x,y
-                Field[mouseX][mouseY] = true;
-                updateGame(window,renderer,r);
-            }else if (e.type == SDL_MOUSEBUTTONDOWN && Field[mouseX][mouseY] == true){
-                //Deactivate cell
-                Field[mouseX][mouseY] = false;
-                updateGame(window,renderer,r);
-            }else if (e.type == SDL_KEYDOWN){
+            case SDL_MOUSEBUTTONDOWN:
+                mouseX = getNearestMultiple(e.button.x) / RECT_SIZE;
+                mouseY = getNearestMultiple(e.button.y) / RECT_SIZE;
+                
+                if (buttonPress(mouseX,mouseY)){
+                    paused = !paused;
+                    updateGame(window,renderer,r,paused);
+                }
+                else if (Field[mouseX][mouseY] == false){
+                    //activate cell at position x,y
+                    Field[mouseX][mouseY] = true;
+                    updateGame(window,renderer,r,paused);
+                }else if (Field[mouseX][mouseY] == true){
+                    //Deactivate cell
+                    Field[mouseX][mouseY] = false;
+                    updateGame(window,renderer,r,paused);
+                break;
+
+            case SDL_KEYDOWN:
                 if (e.key.keysym.sym == SDLK_SPACE){
                     nextEpoch();
-                    updateGame(window, renderer, r);
+                    updateGame(window, renderer, r,paused);
                 }
                 else if (e.key.keysym.sym == SDLK_r){
                     memset(Field,0,sizeof(Field[0][0]) * WIDTH * HEIGHT);
                     memset(nextState,0,sizeof(nextState[0][0]) * WIDTH * HEIGHT);
-                    updateGame(window,renderer, r);
-                }
-                else if (e.key.keysym.sym == SDLK_p){
-                    SDL_Event run;
-                    bool stop = false;
-                    while (stop == false && SDL_PollEvent(&run)){
-                        nextEpoch();
-                        updateGame(window, renderer, r);
-                        sleep(1);
-                        if (run.type == SDL_KEYDOWN){
-                            if (run.key.keysym.sym == SDLK_q){
-                                printf("pressed P\n");
-                                stop = true;
-                            }
-                        }
-                    }
+                    updateGame(window,renderer, r,paused);
                 }
             }
         }
     }
+quit_game:
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+    return EXIT_SUCCESS;
 }
 
