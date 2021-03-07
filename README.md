@@ -27,4 +27,6 @@ of graphics application/game
 5. Quit, of course, by closing the application
 
 #### 3. Example
-![Alt Text](https://media.giphy.com/media/tcyups9zC1qVwrE0fC/giphy.gif)
+<p align="center">
+   <img src="https://media.giphy.com/media/tcyups9zC1qVwrE0fC/giphy.gif"/>
+</p>
