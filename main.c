@@ -1,19 +1,5 @@
+#include "./main.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include "./include/SDL2/SDL.h"
-#include "include/SDL2/SDL_error.h"
-#include "include/SDL2/SDL_events.h"
-#include "include/SDL2/SDL_keycode.h"
-#include "include/SDL2/SDL_messagebox.h"
-#include "include/SDL2/SDL_pixels.h"
-#include "include/SDL2/SDL_rect.h"
-#include "include/SDL2/SDL_render.h"
-#include "include/SDL2/SDL_stdinc.h"
-#include "include/SDL2/SDL_surface.h"
-#include "include/SDL2/SDL_video.h"
-#include <stdbool.h>
-#include <unistd.h>
-
 
 #define RECT_SIZE 20
 #define SCREEN_WIDTH 640
@@ -29,21 +15,13 @@ SDL_Color blue = {0,0,255,255};
 SDL_Color black = {0,0,0,255};
 SDL_Color white = {244,244,244,50};
 
-/*bool paused = true;*/
-/*bool running = false;*/
-
-int getNearestMultiple(int number){
-    int multiple = 20;
+int getLastMultiple(int number){
+    int multiple = RECT_SIZE;
     float remainder;
     if ((remainder = (number % multiple)) == 0)
         return number;
     else{
-        if (remainder >= (multiple / 2)){
-            number += multiple - remainder;
-        }
-        else {
-            number -= remainder;
-        }
+        number -= remainder;
     }
     return number;
 }
@@ -73,11 +51,11 @@ void displayImg(SDL_Renderer *renderer,char* path){
     }
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, image);
 
-    SDL_Rect dstrect = { 6,SCREEN_HEIGHT-55, 50, 50 };
+    SDL_Rect image_pos = { 6,SCREEN_HEIGHT-55, 50, 50 };
     SDL_Rect rect = {0,SCREEN_HEIGHT-59,60,60};
 
     colorRect(renderer, rect, white);
-    SDL_RenderCopy(renderer, texture, NULL, &dstrect);
+    SDL_RenderCopy(renderer, texture, NULL,&image_pos);
 }
 
 void updateGame(SDL_Window *window,SDL_Renderer *renderer, SDL_Rect r,bool paused){
@@ -109,8 +87,6 @@ void updateGame(SDL_Window *window,SDL_Renderer *renderer, SDL_Rect r,bool pause
 
     SDL_RenderPresent(renderer);
 }
-
-
 
 int countAliveNeighbors(int x, int y){
     int count = 0;
@@ -153,10 +129,6 @@ void nextEpoch(){
     copyArray(Field, nextState);
 }
 
-int msleep(unsigned int tms){
-    return usleep(tms * 1000);
-
-}
 
 bool buttonPress(int x,int y){
     if (x <= 2 && x >= 0 && y >= (HEIGHT - 3) && y <= HEIGHT){
@@ -195,6 +167,9 @@ int main (int argc, char** argv)
     // Setup renderer
     SDL_Renderer* renderer = NULL;
     renderer =  SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED);
+    if (renderer == NULL){
+        printf("Error creating renderer\n");
+    }
 
     SDL_Event e;
     
@@ -231,8 +206,8 @@ int main (int argc, char** argv)
                 break;
 
             case SDL_MOUSEBUTTONDOWN:
-                mouseX = getNearestMultiple(e.button.x) / RECT_SIZE;
-                mouseY = getNearestMultiple(e.button.y) / RECT_SIZE;
+                mouseX = getLastMultiple(e.button.x) / RECT_SIZE;
+                mouseY = getLastMultiple(e.button.y) / RECT_SIZE;
                 
                 if (buttonPress(mouseX,mouseY)){
                     paused = !paused;
