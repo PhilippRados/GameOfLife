@@ -1,8 +1,9 @@
-game:
-	 cc main.c -o play -I include -L lib -l SDL2-2.0.0 
-
-debug:
-	 cc -g main.c -o db -I include -L lib -l SDL2-2.0.0 
-
 test_main:
-	 cc test.c -o test -I include -L lib -l criterion.3.1.0
+	cc -c shared.c -I include -o main.o
+	cc -c test.c -I include -o test.o
+	cc -o testing main.o test.o -L lib -lcriterion.3.1.0 -lSDL2-2.0.0 
+
+shared_game:
+	cc -c shared.c -I include -o shared.o
+	cc -c main.c -I include -o main.o
+	cc -o game_of_life main.o shared.o -L lib -lSDL2-2.0.0
