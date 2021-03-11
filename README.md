@@ -30,3 +30,8 @@ of graphics application/game
 <p align="center">
    <img src="https://media.giphy.com/media/tcyups9zC1qVwrE0fC/giphy.gif"/>
 </p>
+
+#### 4. Installation
+1. clone this repo
+2. run the `game_of_life` binary
+3. This code was only tested on MacOs, so I can't guarantee that it works on other platforms
