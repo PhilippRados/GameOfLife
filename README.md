@@ -33,5 +33,6 @@ of graphics application/game
 
 #### 4. Installation
 1. clone this repo
-2. run the `game_of_life` binary
-3. This code was only tested on MacOs, so I can't guarantee that it works on other platforms
+2. make `shared_game`
+3. run the `game_of_life` binary
+4. This code was only tested on MacOs, so I can't guarantee that it works on other platforms
