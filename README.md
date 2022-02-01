@@ -33,6 +33,6 @@ of graphics application/game
 
 #### 4. Installation
 1. clone this repo
-2. make `shared_game` (you need to have SDL2 in this directory)
+2. make `shared_game`
 3. run the `game_of_life` binary
 4. This code was only tested on MacOs, so I can't guarantee that it works on other platforms
